@@ -1,21 +1,74 @@
+##############################################################################
+# Copyright (C) 2015 Maciej Nasinski                                         #
+#                    Dorota Celinska <dcelinska at wne dot uw dot edu dot pl>#
+#                                                                            #
+# This program is free software: you can redistribute it and/or modify       #
+# it under the terms of the GNU General Public License as published by       #
+# the Free Software Foundation, either version 3 of the License, or          #
+# (at your option) any later version.                                        #
+#                                                                            #
+# This program is distributed in the hope that it will be useful,            #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+# GNU General Public License for more details.                               #
+#                                                                            #
+# You should have received a copy of the GNU General Public License          #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.      #
+##############################################################################
+
+# Analiza kanoniczna na przykładzie Celinska, Olszewski [2013].
+# Wykorzystamy baze danych "zadowolenie.dta" oparta na bazie z badania Diagnoza Spoleczna
+# W badaniu wykorzystujemy jedynie obserwacje dotyczace glow gospodarstwa domowego
+
+# numer_gd - do diagnostyki, nr gospodarstwa
+
+# plec - plec respondenta (1 -- kobieta, 0 -- mezczyzna)
+# wiek2011 - wiek w roku 2011
+# edukacja - wyksztalcenie respondenta
+# stanciv- stan cywilny
+# dochod - sredni (estymowany przez repondenta) dochod z ostatnich 3 miesiecy
+# zaufanie - czy respondent czuje sie kochany i darzony zaufaniem (1 -- tak, 0 -- nie)
+# dep_x - wskazniki z testu Becka dotyczace oznak depresji: wyglad, zapal do pracy, sen, meczenie sie, zdrowie
+# zaleznosc -- kto ma wplyw na zycie respondenta (1 -- jestem kowalem swojego losu; 0 -- moje zycie zalezy od wladz, od innych ludzi, od losu-opatrznosci)
+# kontakty -- liczba kontaktow spolecznych miesiecznie
+# aktywnosc -- liczba przypadkow aktywnosci spolecznej (wizyty w kinie, teatrze, na koncertach; restauracjach, kawiarniach, pubach; spotkania towarzyskie)
+
+# rodzina -- zadowolenie ze stosunkow z rodzina
+# przyjaciele -- zadowolenie ze stosunkow ze znajomymi
+# zdrowie -- zadowolenie ze stanu zdrowia
+# sukces -- zadowolenie z osiagniec zyciowych  
+
+# Zbior zmiennych zaleznych: rodzina przyjaciele zdrowie sukces
+# Zbior zmiennych niezaleznych: plec wiek2011, edukacja, stanciv, dochod, zaufanie, dep_x, zaleznosc, kontakty, aktywnosc*/
+
+# Zainstalowanie (o ile wczesniej tego nie zrobiono) potrzebnych pakietow
+
 if(!("foreign" %in% installed.packages()[,1])){install.packages("foreign")}
 if(!("foreign" %in% installed.packages()[,1])){install.packages("CCA")}
+
+# Wczytanie pakietow
+
 library(CCA)
 library(foreign)
-setwd("C:/Users/MACIEK/Desktop/analizaWW/Canonical Anlysis STATA oraz R")
+
+# Krok opcjonalny -- mozna ustawic working directory, w ktorym znajduja sie wykorzystywane pliki
+# setwd("tutaj/sciezka/dostepu")
+
+# wczytanie zbioru danych i nazwanie zmiennych
+
 zadowo<-as.data.frame(read.dta("zadowolenie.dta",convert.factors = FALSE))
 nazwy01<-c("rodzina" ,"przyjaciele" ,"zdrowie" ,"sukces")
 nazwy02<-c("dep_wyglad", "dep_zapal", "dep_zdrowie", "dep_sen", "dep_meczenie","plec", "wiek2011" ,"kontakty", "aktywnosc", "edukacja", "zaufanie", "zaleznosc", "stanciv", "dochod")
 sap1<-sapply(c(4,6,13,14),function(x) zadowo[,x]<<-as.factor(zadowo[,x]))
 zadowo<-as.data.frame(zadowo)
 
-##ROZBICIE ZMIENNYCH FACTOROWYCH
+# Rozkodowanie zmiennych dyskretnych na poziomy
 
 for(i in c("plec","zaleznosc","stanciv","zaufanie")){
   sap2<-sapply(2:length(levels(zadowo[,i])),function(x) zadowo[paste0(i,x)]<<-as.numeric(zadowo[,i]==levels(zadowo[,i])[x]))
 }
 
-#WYROZNIENIE MACIERZY X ORAZ Y
+# Stworzenie macierzy zmiennych objasniajacych (X) i macierzy zmiennych objasnianych (Y)
 
 zadowo<-zadowo[,!names(zadowo) %in% c("plec","zaleznosc","stanciv","zaufanie")]
 nazwy1<-c("rodzina" ,"przyjaciele" ,"zdrowie" ,"sukces")
@@ -25,11 +78,11 @@ matX<-zadowo[,nazwy2]
 
 matcor(matX,matY)
 
-#ANALIZA KANONICZNA
+# ANALIZA KANONICZNA
 
 cc1<-cc(matX,matY)
 
-#WYSTANDARYZOWANE WYNIKI
+# WYSTANDARYZOWANE WYNIKI
 
 wyniki<-list()
 wyniki[[1]] <- diag(sqrt(diag(cov(matY)))) %*% cc1$ycoef
@@ -38,7 +91,7 @@ wyniki[[2]] <- diag(sqrt(diag(cov(matX)))) %*% cc1$xcoef
 rownames(wyniki[[2]])<-nazwy2
 wyniki
 
-#FUNKCJA  PIERWSZA WILKS
+# Diagnostyka: Wilks' lambda
 
 WILKSL<-function(matX,matY,cc1){
   ev <- (1 - cc1$cor^2)
@@ -69,7 +122,7 @@ WILKSL<-function(matX,matY,cc1){
 
 WILKSL(matX,matY,cc1)
 
-#FUNKCJA DRUDA WILKS
+# Inny zapis
 
 WILKS2<-function(cc1){
   dmat2<-matrix(0,nrow=ncol(matY),ncol=2)
@@ -79,7 +132,7 @@ WILKS2<-function(cc1){
 
 WILKS2(cc1)
 
-#FUNKCJA REDUNDANCJA 
+# Redundancja
 
 REDUNT<-function(matX,matY,cc1){
   eigenmatY<-cc1$cor
@@ -100,4 +153,3 @@ REDUNT<-function(matX,matY,cc1){
 }
 
 REDUNT(matX,matY,cc1)
-
