@@ -68,7 +68,8 @@ zadowo[, factor_vars] <- Map(as.factor, zadowo[, factor_vars])
 
 # Rozkodowanie zmiennych dyskretnych na poziomy
 
-zadowo <- as.data.frame(model.matrix(~ ., zadowo, na.action = "na.pass")[, -1])
+zadowo <- as.data.frame(model.matrix(~ ., zadowo, na.action = "na.pass", 
+                                     contrasts.arg = as.list(setNames(rep("contr.treatment", length(factor_vars)), factor_vars)))[, -1])
 
 # Stworzenie macierzy zmiennych objasniajacych (X) i macierzy zmiennych objasnianych (Y)
 
